@@ -1,56 +1,60 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<title>ESCALA LOUVOR 2026</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#2563eb">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta charset="UTF-8">
+    <title>ESCALA LOUVOR 2026</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2563eb">
+    
+    <link rel="manifest" href="manifest.json">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Louvor 2026">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3844/3844724.png">
 
-<link rel="manifest" href='data:application/manifest+json,{"name":"Escala Louvor","short_name":"Louvor","start_url":".","display":"standalone","background_color":"#f4f6fb","theme_color":"#2563eb","icons":[{"src":"https://cdn-icons-png.flaticon.com/512/3844/3844724.png","sizes":"512x512","type":"image/png"}]}'>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        :root {
+            --bg: #f4f6fb; --card: #ffffff; --text: #1f2937; --primary: #2563eb;
+            --danger: #dc2626; --success: #16a34a; --border: #cbd5e1; --shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            --gold: #d4af37;
+        }
+        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 16px; -webkit-tap-highlight-color: transparent; }
+        .container { max-width: 1000px; margin: auto; }
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<style>
-:root {
-    --bg: #f4f6fb; --card: #ffffff; --text: #1f2937; --primary: #2563eb;
-    --danger: #dc2626; --success: #16a34a; --border: #cbd5e1; --shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-    --gold: #d4af37;
-}
-body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 16px; }
-.container { max-width: 1000px; margin: auto; }
+        /* CABEÇALHO */
+        .header-app { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 25px; padding: 10px; }
+        .logo-container { width: 60px; height: 60px; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: var(--gold); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        #logoImg { width: 100%; height: 100%; object-fit: cover; display: none; }
+        #logoEmoji { font-size: 30px; color: white; }
+        .app-name { font-size: 26px; font-weight: 800; color: var(--primary); letter-spacing: -1px; text-transform: uppercase; }
 
-/* CABEÇALHO */
-.header-app { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 25px; padding: 10px; }
-.logo-container { width: 60px; height: 60px; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: var(--gold); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-#logoImg { width: 100%; height: 100%; object-fit: cover; display: none; }
-#logoEmoji { font-size: 30px; color: white; }
-.app-name { font-size: 26px; font-weight: 800; color: var(--primary); letter-spacing: -1px; text-transform: uppercase; }
+        .card { background: var(--card); border-radius: 12px; padding: 18px; margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+        .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        input, select, button { padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 14px; }
+        button { cursor: pointer; font-weight: 600; border: none; transition: 0.2s; display: flex; align-items: center; gap: 5px; }
+        .primary { background: var(--primary); color: white; }
+        .success { background: var(--success); color: white; }
+        .danger { background: var(--danger); color: white; }
+        .secondary { background: #64748b; color: white; }
 
-.card { background: var(--card); border-radius: 12px; padding: 18px; margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border); }
-.row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-input, select, button { padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 14px; }
-button { cursor: pointer; font-weight: 600; border: none; transition: 0.2s; display: flex; align-items: center; gap: 5px; }
-.primary { background: var(--primary); color: white; }
-.success { background: var(--success); color: white; }
-.danger { background: var(--danger); color: white; }
-.secondary { background: #64748b; color: white; }
+        .tabs { display: flex; gap: 5px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
+        .tab-btn { flex: 1; padding: 12px; cursor: pointer; border-radius: 8px; background: rgba(0,0,0,0.05); white-space: nowrap; }
+        .tab-btn.active { background: var(--primary); color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
 
-.tabs { display: flex; gap: 5px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
-.tab-btn { flex: 1; padding: 12px; cursor: pointer; border-radius: 8px; background: rgba(0,0,0,0.05); white-space: nowrap; }
-.tab-btn.active { background: var(--primary); color: white; }
-.tab-content { display: none; }
-.tab-content.active { display: block; }
+        .escala-item { padding: 10px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .escala-item b { color: var(--primary); }
+        .btn-swap { background: #f1f5f9; color: #64748b; padding: 4px 8px; font-size: 12px; border: 1px solid #cbd5e1; border-radius: 4px; }
 
-.escala-item { padding: 10px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-.escala-item b { color: var(--primary); }
-.btn-swap { background: #f1f5f9; color: #64748b; padding: 4px 8px; font-size: 12px; border: 1px solid #cbd5e1; border-radius: 4px; }
-
-.vocal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; padding: 10px; background: #f8fafc; border-radius: 8px; }
-.musica-tag { background: #e0e7ff; color: #4338ca; padding: 4px 10px; border-radius: 6px; font-size: 12px; margin: 3px; display: inline-block; font-weight: bold; border: 1px solid #c7d2fe; }
-.edit-mode { border: 2px solid var(--success) !important; background: #f0fff4 !important; }
-@media print { .no-print { display: none !important; } }
-</style>
+        .vocal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; padding: 10px; background: #f8fafc; border-radius: 8px; }
+        .musica-tag { background: #e0e7ff; color: #4338ca; padding: 4px 10px; border-radius: 6px; font-size: 12px; margin: 3px; display: inline-block; font-weight: bold; border: 1px solid #c7d2fe; }
+        .edit-mode { border: 2px solid var(--success) !important; background: #f0fff4 !important; }
+        @media print { .no-print { display: none !important; } }
+    </style>
 </head>
 <body>
 
@@ -149,14 +153,19 @@ button { cursor: pointer; font-weight: 600; border: none; transition: 0.2s; disp
                 <input type="file" id="inputBackup" style="display:none" onchange="restaurarBackup(event)">
             </div>
         </div>
-        <div class="card no-print" id="installArea" style="display:none;">
-            <h3>📲 Aplicativo</h3>
-            <button class="primary" onclick="instalarApp()">Instalar na Tela Inicial</button>
-        </div>
     </div>
 </div>
 
 <script>
+// REGISTRO DO SERVICE WORKER (Necessário para Instalação)
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('App pronto para uso offline!'))
+            .catch(err => console.log('Erro no registro do App:', err));
+    });
+}
+
 const ano = 2026;
 const funcoesLista = ["Ministro", "Vocal 1", "Vocal 2", "Vocal 3", "Violonista", "Guitarrista", "Baixista", "Baterista", "Tecladista", "Mesa de Som", "Mídia"];
 
@@ -165,32 +174,6 @@ let musicas = JSON.parse(localStorage.getItem("musicas")) || [];
 let historico = JSON.parse(localStorage.getItem("historicoEscalas")) || [];
 let logoSalva = localStorage.getItem("appLogo") || null;
 let editIdxMus = -1; let editIdxInt = -1;
-let deferredPrompt;
-
-// --- REGISTRO DE SERVICE WORKER PARA HABILITAR INSTALAÇÃO ---
-if ('serviceWorker' in navigator) {
-    const swCode = "self.addEventListener('fetch', function(event) {});";
-    const blob = new Blob([swCode], {type: 'application/javascript'});
-    const swUrl = URL.createObjectURL(blob);
-    navigator.serviceWorker.register(swUrl);
-}
-
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    document.getElementById('installArea').style.display = 'block';
-});
-
-async function instalarApp() {
-    if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-            document.getElementById('installArea').style.display = 'none';
-        }
-        deferredPrompt = null;
-    }
-}
 
 function salvarLocal() {
     localStorage.setItem("integrantes", JSON.stringify(integrantes));
@@ -227,10 +210,10 @@ function openTab(evt, name) {
 function trocarMembro(el, funcaoOriginal) {
     const buscaFuncao = funcaoOriginal.split(" / ")[0];
     const possiveis = integrantes.filter(it => it.funcoes.includes(buscaFuncao));
-    let msg = `Novo nome para ${funcaoOriginal}:\nOpções: ${possiveis.map(p => p.nome).join(", ")}\n(Digite 'NENHUM' para limpar)`;
+    let msg = `Novo para ${funcaoOriginal}:\nOpções: ${possiveis.map(p => p.nome).join(", ")}`;
     let novoNome = prompt(msg);
     if(novoNome !== null) {
-        el.parentElement.querySelector("b").innerText = (novoNome.toUpperCase() === 'NENHUM' || !novoNome.trim()) ? "---" : novoNome;
+        el.parentElement.querySelector("b").innerText = novoNome.trim() || "---";
     }
 }
 
@@ -275,7 +258,7 @@ function gerarEscalaCompleta() {
         for(let i=0; i < todasPossiveis.length && musicasDia.length < 3; i++) { musicasDia.push(todasPossiveis[i]); }
 
         if(musicasDia.length > 0) {
-            html += `<div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px"><strong>🎵 Repertório (3 músicas):</strong><br>`;
+            html += `<div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px"><strong>🎵 Repertório:</strong><br>`;
             musicasDia.forEach(m => html += `<span class="musica-tag">${m.titulo}</span>`);
             html += `</div>`;
         }
@@ -283,7 +266,7 @@ function gerarEscalaCompleta() {
     }
 }
 
-// --- EQUIPE (EXCEL) ---
+// --- EQUIPE (IMPORT/EXPORT) ---
 function renderEquipe() {
     const c = document.getElementById("listaIntegrantes"); c.innerHTML = "";
     document.getElementById("funcoesCheck").innerHTML = funcoesLista.map(f => `<label style="font-size:12px"><input type="checkbox" name="f_int" value="${f}"> ${f}</label>`).join("");
@@ -321,12 +304,12 @@ function importarEquipeExcel(ev) {
         const ws = wb.Sheets[wb.SheetNames[0]];
         const data = XLSX.utils.sheet_to_json(ws);
         data.forEach(row => { if(row["Nome"]) integrantes.push({ nome: row["Nome"], funcoes: row["Funções"] ? row["Funções"].split(", ") : [] }); });
-        salvarLocal(); renderEquipe(); alert("Equipe Importada!");
+        salvarLocal(); renderEquipe(); alert("Importado!");
     };
     reader.readAsBinaryString(ev.target.files[0]);
 }
 
-// --- REPERTÓRIO (EXCEL) ---
+// --- REPERTÓRIO (IMPORT/EXPORT) ---
 function renderMusicas() {
     const c = document.getElementById("listaMusicas"); c.innerHTML = "";
     const vs = integrantes.filter(it => it.funcoes.some(f => f.includes("Vocal") || f === "Ministro"));
@@ -365,13 +348,13 @@ function importarMusicasExcel(ev) {
         const ws = wb.Sheets[wb.SheetNames[0]];
         const data = XLSX.utils.sheet_to_json(ws);
         data.forEach(row => { if(row["Título"]) musicas.push({ titulo: row["Título"], vocalistas: row["Vocalistas"] ? row["Vocalistas"].split(", ") : [] }); });
-        salvarLocal(); renderMusicas(); alert("Músicas Importadas!");
+        salvarLocal(); renderMusicas(); alert("Importado!");
     };
     reader.readAsBinaryString(ev.target.files[0]);
 }
 
 // --- HISTÓRICO ---
-function limparHistorico() { if(confirm("Apagar histórico?")) { historico = []; salvarLocal(); renderHistorico(); } }
+function limparHistorico() { if(confirm("Apagar?")) { historico = []; salvarLocal(); renderHistorico(); } }
 function renderHistorico() {
     const h = document.getElementById("listaHistorico"); h.innerHTML = "";
     historico.slice().reverse().forEach(esc => h.innerHTML += `<div class="card"><strong>${esc.nome}</strong><br>${esc.html}</div>`);
@@ -406,7 +389,7 @@ function exportarParaExcel() {
 
 function fazerBackup() {
     const blob = new Blob([JSON.stringify({integrantes, musicas, historico, logoSalva})], {type: "application/json"});
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "backup.json"; a.click();
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "backup_total.json"; a.click();
 }
 function restaurarBackup(ev) {
     const reader = new FileReader();
