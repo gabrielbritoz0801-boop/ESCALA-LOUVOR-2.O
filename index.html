@@ -43,7 +43,7 @@
         .vocal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; padding: 10px; background: #f8fafc; border-radius: 8px; }
         .musica-tag { background: #e0e7ff; color: #4338ca; padding: 4px 10px; border-radius: 6px; font-size: 12px; margin: 3px; display: inline-block; font-weight: bold; border: 1px solid #c7d2fe; }
         .edit-mode { border: 2px solid var(--success) !important; background: #f0fff4 !important; }
-        .sync-status { font-size: 10px; text-align: center; color: #94a3b8; margin-top: -15px; margin-bottom: 15px; }
+        .sync-status { font-size: 11px; text-align: center; color: #64748b; margin-top: -15px; margin-bottom: 15px; font-weight: bold; }
         @media print { .no-print { display: none !important; } }
     </style>
 </head>
@@ -57,7 +57,7 @@
         </div>
         <div class="app-name">Escala Louvor</div>
     </div>
-    <div id="statusSync" class="sync-status no-print">Sincronizando com a nuvem...</div>
+    <div id="statusSync" class="sync-status no-print">Iniciando...</div>
 
     <div class="tabs no-print">
         <button class="tab-btn active" onclick="openTab(event, 'abaEscala')">📅 Escala</button>
@@ -96,14 +96,8 @@
             <input id="musNome" placeholder="Título da música" style="width:100%; margin-bottom:10px;">
             <div id="vocaisCheck" class="vocal-grid"></div>
             <div class="row" style="margin-top:10px;">
-                <button class="success" onclick="salvarMusica()">Salvar</button>
+                <button class="success" onclick="salvarMusica()">Salvar Música</button>
                 <button class="secondary" onclick="resetMusForm()" id="btnMusCancel" style="display:none;">Cancelar</button>
-            </div>
-            <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
-            <div class="row">
-                <button class="secondary" onclick="exportarMusicasExcel()">📊 Baixar Excel</button>
-                <button class="primary" onclick="document.getElementById('importMusExcel').click()">📥 Importar Excel</button>
-                <input type="file" id="importMusExcel" style="display:none" accept=".xlsx, .xls" onchange="importarMusicasExcel(event)">
             </div>
         </div>
         <div id="listaMusicas"></div>
@@ -112,17 +106,11 @@
     <div id="abaEquipe" class="tab-content">
         <div class="card" id="formInt">
             <h3 id="eqpTit">Novo Integrante</h3>
-            <input id="intNome" placeholder="Nome" style="width:100%; margin-bottom:10px;">
+            <input id="intNome" placeholder="Nome do Integrante" style="width:100%; margin-bottom:10px;">
             <div id="funcoesCheck" class="row"></div>
             <div class="row" style="margin-top:10px;">
-                <button class="success" onclick="salvarInt()">Salvar</button>
+                <button class="success" onclick="salvarInt()">Salvar Integrante</button>
                 <button class="secondary" onclick="resetIntForm()" id="btnIntCancel" style="display:none;">Cancelar</button>
-            </div>
-            <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
-            <div class="row">
-                <button class="secondary" onclick="exportarEquipeExcel()">📊 Baixar Equipe</button>
-                <button class="primary" onclick="document.getElementById('importEqpExcel').click()">📥 Importar Equipe</button>
-                <input type="file" id="importEqpExcel" style="display:none" accept=".xlsx, .xls" onchange="importarEquipeExcel(event)">
             </div>
         </div>
         <div id="listaIntegrantes"></div>
@@ -138,18 +126,20 @@
             </div>
         </div>
         <div class="card">
-            <h3>💾 Sistema</h3>
+            <h3>💾 Importação / Exportação</h3>
             <div class="row">
-                <button class="primary" onclick="fazerBackup()">📥 Backup Local</button>
-                <button class="success" onclick="document.getElementById('inputBackup').click()">📤 Restaurar</button>
-                <input type="file" id="inputBackup" style="display:none" onchange="restaurarBackup(event)">
+                <button class="secondary" onclick="fazerBackup()">📥 Backup Local (.json)</button>
+                <button class="primary" onclick="document.getElementById('importEqpExcel').click()">👥 Importar Equipe (Excel)</button>
+                <button class="primary" onclick="document.getElementById('importMusExcel').click()">🎵 Importar Músicas (Excel)</button>
+                <input type="file" id="importEqpExcel" style="display:none" accept=".xlsx, .xls" onchange="importarEquipeExcel(event)">
+                <input type="file" id="importMusExcel" style="display:none" accept=".xlsx, .xls" onchange="importarMusicasExcel(event)">
             </div>
         </div>
     </div>
 </div>
 
 <script>
-// CONFIGURAÇÃO FIREBASE
+// --- CONFIGURAÇÃO FIREBASE ---
 const firebaseConfig = {
     apiKey: "AIzaSyCoFW2dGfZTmKE4LNRL0TJBNACUneRmUJQ",
     authDomain: "escala-louvor-f5c43.firebaseapp.com",
@@ -171,49 +161,134 @@ let historico = [];
 let logoSalva = localStorage.getItem("appLogo") || null;
 let editIdxMus = -1; let editIdxInt = -1;
 
-// --- SINCRONIZAÇÃO EM TEMPO REAL ---
-db.ref('escala_dados').on('value', (snapshot) => {
+// --- SINCRONIZAÇÃO FIREBASE ---
+db.ref('escala_v1').on('value', (snapshot) => {
     const data = snapshot.val();
-    if (data) {
-        integrantes = data.integrantes || [];
-        musicas = data.musicas || [];
-        historico = data.historico || [];
-        document.getElementById('statusSync').innerText = "✓ Dados Sincronizados";
-    } else {
-        document.getElementById('statusSync').innerText = "Nuvem vazia. Comece a cadastrar.";
-    }
+    integrantes = (data && data.integrantes) ? data.integrantes : [];
+    musicas = (data && data.musicas) ? data.musicas : [];
+    historico = (data && data.historico) ? data.historico : [];
+    
+    document.getElementById('statusSync').innerText = "✓ Sincronizado com Nuvem";
     renderEquipe();
     renderMusicas();
     renderHistorico();
-}, (error) => {
-    document.getElementById('statusSync').innerText = "Erro ao sincronizar. Verifique as regras do Firebase.";
+}, () => {
+    document.getElementById('statusSync').innerText = "⚠ Erro de conexão!";
 });
 
 function salvarNuvem() {
-    document.getElementById('statusSync').innerText = "Salvando na nuvem...";
-    db.ref('escala_dados').set({
+    document.getElementById('statusSync').innerText = "Salvando...";
+    db.ref('escala_v1').set({
         integrantes: integrantes,
         musicas: musicas,
         historico: historico
-    }).then(() => {
-        document.getElementById('statusSync').innerText = "✓ Salvo com sucesso!";
     });
 }
 
-// --- LOGO (Mantida Localmente por ser pesada) ---
-function carregarLogo() {
-    const img = document.getElementById("logoImg"); const emoji = document.getElementById("logoEmoji");
-    if(logoSalva) { img.src = logoSalva; img.style.display = "block"; emoji.style.display = "none"; }
-    else { img.style.display = "none"; emoji.style.display = "block"; }
-}
-function uploadLogo(event) {
-    const file = event.target.files[0]; const reader = new FileReader();
-    reader.onloadend = () => { logoSalva = reader.result; localStorage.setItem("appLogo", logoSalva); carregarLogo(); };
-    if(file) reader.readAsDataURL(file);
-}
-function removerLogo() { logoSalva = null; localStorage.removeItem("appLogo"); carregarLogo(); }
+// --- GERAÇÃO DA ESCALA (LÓGICA PRINCIPAL) ---
+function gerarEscalaCompleta() {
+    const mes = parseInt(document.getElementById("mesSelecao").value);
+    const container = document.getElementById("resultadoEscala");
+    if (integrantes.length === 0) return alert("Cadastre a equipe primeiro!");
 
-// --- TABS ---
+    container.innerHTML = "";
+    const diasNoMes = new Date(ano, mes + 1, 0).getDate();
+    let finalHtml = "";
+
+    for (let d = 1; d <= diasNoMes; d++) {
+        const data = new Date(ano, mes, d);
+        if (![0, 3].includes(data.getDay())) continue; // Apenas Dom (0) e Qua (3)
+
+        let escaladosDia = [];
+        let vocaisAtivos = [];
+        let htmlCorpo = "";
+
+        // 1. Ministro (Regra: Mesclar se for vocal)
+        let mins = integrantes.filter(it => it.funcoes.includes("Ministro")).sort(() => Math.random() - 0.5);
+        let m = mins[0];
+        if (m) {
+            escaladosDia.push(m.nome);
+            vocaisAtivos.push(m.nome);
+            let isVocal = m.funcoes.some(f => f.toLowerCase().includes("vocal"));
+            let label = isVocal ? "Ministro / Vocal" : "Ministro";
+            htmlCorpo += `<div class="escala-item"><span>${label}: <b>${m.nome}</b></span> <button class="btn-swap no-print" onclick="trocarMembro(this, '${label}')">🔄</button></div>`;
+        }
+
+        // 2. Outras Funções (Máximo 4 microfones)
+        funcoesLista.forEach(f => {
+            if (f === "Ministro") return;
+            if (f.toLowerCase().includes("vocal") && vocaisAtivos.length >= 4) return; // Limite de 4 mics
+
+            let cand = integrantes.filter(it => {
+                const semAno = Math.ceil((data - new Date(ano, 0, 1)) / (604800000));
+                if (it.nome === "Jossinei" && data.getDay() === 3 && (semAno % 2 !== 0)) return false;
+                return it.funcoes.includes(f) && !escaladosDia.includes(it.nome);
+            }).sort(() => Math.random() - 0.5);
+
+            let sorteado = cand[0];
+            if (sorteado) {
+                escaladosDia.push(sorteado.nome);
+                if (f.toLowerCase().includes("vocal")) vocaisAtivos.push(sorteado.nome);
+                htmlCorpo += `<div class="escala-item"><span>${f}: <b>${sorteado.nome}</b></span> <button class="btn-swap no-print" onclick="trocarMembro(this, '${f}')">🔄</button></div>`;
+            } else {
+                htmlCorpo += `<div class="escala-item"><span>${f}: <b>---</b></span> <button class="btn-swap no-print" onclick="trocarMembro(this, '${f}')">🔄</button></div>`;
+            }
+        });
+
+        // 3. Músicas (3 compatíveis com os vocais do dia)
+        let mPossiveis = musicas.filter(ms => ms.vocalistas && ms.vocalistas.some(v => vocaisAtivos.includes(v)));
+        let mEscolhidas = mPossiveis.sort(() => Math.random() - 0.5).slice(0, 3);
+
+        finalHtml += `
+            <div class="card">
+                <h3 style="text-transform:capitalize">${data.toLocaleDateString('pt-BR',{weekday:'long'})}, ${d}/${mes+1}</h3>
+                <hr>${htmlCorpo}
+                <div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px">
+                    <strong>🎵 Repertório:</strong><br>
+                    ${mEscolhidas.length > 0 ? mEscolhidas.map(x => `<span class="musica-tag">${x.titulo}</span>`).join("") : "---"}
+                </div>
+            </div>`;
+    }
+    container.innerHTML = finalHtml || "<p>Sem cultos.</p>";
+}
+
+// --- FUNÇÕES DE INTERFACE ---
+function renderEquipe() {
+    const c = document.getElementById("listaIntegrantes"); c.innerHTML = "";
+    document.getElementById("funcoesCheck").innerHTML = funcoesLista.map(f => `<label style="font-size:12px"><input type="checkbox" name="f_int" value="${f}"> ${f}</label>`).join("");
+    integrantes.forEach((it, i) => {
+        c.innerHTML += `<div class="escala-item"><span><b>${it.nome}</b><br><small>${it.funcoes.join(", ")}</small></span>
+        <div class="row"><button class="primary" onclick="editInt(${i})">✏️</button><button class="danger" onclick="delInt(${i})">🗑</button></div></div>`;
+    });
+}
+
+function salvarInt() {
+    const n = document.getElementById("intNome").value, f = Array.from(document.querySelectorAll('input[name="f_int"]:checked')).map(cb => cb.value);
+    if(!n || !f.length) return alert("Preencha nome e funções!");
+    if(editIdxInt > -1) integrantes[editIdxInt] = {nome: n, funcoes: f};
+    else integrantes.push({nome: n, funcoes: f});
+    resetIntForm(); salvarNuvem();
+}
+
+function renderMusicas() {
+    const c = document.getElementById("listaMusicas"); c.innerHTML = "";
+    const vs = integrantes.filter(it => it.funcoes.some(f => f.includes("Vocal") || f === "Ministro"));
+    document.getElementById("vocaisCheck").innerHTML = vs.map(v => `<label><input type="checkbox" name="v_mus" value="${v.nome}"> ${v.nome}</label>`).join("");
+    musicas.forEach((m, i) => {
+        c.innerHTML += `<div class="escala-item"><span><b>${m.titulo}</b><br><small>${m.vocalistas.join(", ")}</small></span>
+        <div class="row"><button class="primary" onclick="editMusica(${i})">✏️</button><button class="danger" onclick="delMusica(${i})">🗑</button></div></div>`;
+    });
+}
+
+function salvarMusica() {
+    const t = document.getElementById("musNome").value, v = Array.from(document.querySelectorAll('input[name="v_mus"]:checked')).map(cb => cb.value);
+    if(!t) return alert("Nome da música obrigatório!");
+    if(editIdxMus > -1) musicas[editIdxMus] = {titulo: t, vocalistas: v};
+    else musicas.push({titulo: t, vocalistas: v});
+    resetMusForm(); salvarNuvem();
+}
+
+// --- AUXILIARES ---
 function openTab(evt, name) {
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -221,82 +296,6 @@ function openTab(evt, name) {
     evt.currentTarget.classList.add('active');
 }
 
-// --- TROCA MANUAL ---
-function trocarMembro(el, funcaoOriginal) {
-    const buscaFuncao = funcaoOriginal.split(" / ")[0];
-    const possiveis = integrantes.filter(it => it.funcoes.includes(buscaFuncao));
-    let msg = `Novo para ${funcaoOriginal}:\nOpções: ${possiveis.map(p => p.nome).join(", ")}`;
-    let novoNome = prompt(msg);
-    if(novoNome !== null) {
-        el.parentElement.querySelector("b").innerText = novoNome.trim() || "---";
-    }
-}
-
-// --- GERAÇÃO (4 MICS + 3 MÚSICAS) ---
-function gerarEscalaCompleta() {
-    const mes = parseInt(document.getElementById("mesSelecao").value);
-    const container = document.getElementById("resultadoEscala");
-    container.innerHTML = "";
-    const diasNoMes = new Date(ano, mes+1, 0).getDate();
-
-    for(let d=1; d<=diasNoMes; d++) {
-        const data = new Date(ano, mes, d); if(![0, 3].includes(data.getDay())) continue;
-        const card = document.createElement("div"); card.className = "card";
-        let html = `<h3>${data.toLocaleDateString('pt-BR',{weekday:'long'})}, ${d}/${mes+1}</h3><hr>`;
-        let escalados = []; let vocaisNoCulto = [];
-
-        let min = integrantes.filter(it => it.funcoes.includes("Ministro")).sort(() => Math.random() - 0.5)[0];
-        if(min) {
-            escalados.push(min.nome); vocaisNoCulto.push(min.nome);
-            let lbl = min.funcoes.some(f => f.includes("Vocal")) ? "Ministro / Vocal" : "Ministro";
-            html += `<div class="escala-item"><span>${lbl}: <b>${min.nome}</b></span> <button class="btn-swap no-print" onclick="trocarMembro(this, '${lbl}')">🔄</button></div>`;
-        }
-
-        funcoesLista.forEach(f => {
-            if(f === "Ministro") return;
-            let cand = integrantes.filter(it => {
-                const semAno = Math.ceil((data - new Date(ano, 0, 1)) / (604800000));
-                if(it.nome === "Jossinei" && data.getDay() === 3 && (semAno % 2 !== 0)) return false;
-                return it.funcoes.includes(f) && !escalados.includes(it.nome);
-            });
-            let esc = cand[Math.floor(Math.random()*cand.length)];
-            if(esc) {
-                escalados.push(esc.nome); if(f.includes("Vocal")) vocaisNoCulto.push(esc.nome);
-                html += `<div class="escala-item"><span>${f}: <b>${esc.nome}</b></span> <button class="btn-swap no-print" onclick="trocarMembro(this, '${f}')">🔄</button></div>`;
-            } else {
-                html += `<div class="escala-item"><span>${f}: <b>---</b></span> <button class="btn-swap no-print" onclick="trocarMembro(this, '${f}')">🔄</button></div>`;
-            }
-        });
-
-        let todasPossiveis = musicas.filter(m => m.vocalistas.some(v => vocaisNoCulto.includes(v)));
-        let musicasDia = []; todasPossiveis.sort(() => Math.random() - 0.5);
-        for(let i=0; i < todasPossiveis.length && musicasDia.length < 3; i++) { musicasDia.push(todasPossiveis[i]); }
-
-        if(musicasDia.length > 0) {
-            html += `<div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px"><strong>🎵 Repertório:</strong><br>`;
-            musicasDia.forEach(m => html += `<span class="musica-tag">${m.titulo}</span>`);
-            html += `</div>`;
-        }
-        card.innerHTML = html; container.appendChild(card);
-    }
-}
-
-// --- EQUIPE ---
-function renderEquipe() {
-    const c = document.getElementById("listaIntegrantes"); c.innerHTML = "";
-    document.getElementById("funcoesCheck").innerHTML = funcoesLista.map(f => `<label style="font-size:12px"><input type="checkbox" name="f_int" value="${f}"> ${f}</label>`).join("");
-    integrantes.forEach((it, i) => { 
-        c.innerHTML += `<div class="escala-item"><span><b>${it.nome}</b> (${it.funcoes.join(", ")})</span>
-        <div class="row"><button class="primary" onclick="editInt(${i})">✏️</button><button class="danger" onclick="delInt(${i})">🗑</button></div></div>`; 
-    });
-}
-function salvarInt() {
-    const n = document.getElementById("intNome").value, f = Array.from(document.querySelectorAll('input[name="f_int"]:checked')).map(cb => cb.value);
-    if(!n || !f.length) return;
-    if(editIdxInt > -1) integrantes[editIdxInt] = {nome: n, funcoes: f};
-    else integrantes.push({nome: n, funcoes: f});
-    resetIntForm(); salvarNuvem();
-}
 function editInt(i) {
     editIdxInt = i; const it = integrantes[i];
     document.getElementById("intNome").value = it.nome;
@@ -305,42 +304,7 @@ function editInt(i) {
     document.getElementById("formInt").classList.add("edit-mode");
 }
 function resetIntForm() { editIdxInt = -1; document.getElementById("intNome").value = ""; document.querySelectorAll('input[name="f_int"]').forEach(cb => cb.checked = false); document.getElementById("btnIntCancel").style.display = "none"; document.getElementById("formInt").classList.remove("edit-mode"); }
-function delInt(i) { if(confirm("Remover?")) { integrantes.splice(i,1); salvarNuvem(); } }
 
-function exportarEquipeExcel() {
-    const data = integrantes.map(it => ({ "Nome": it.nome, "Funções": it.funcoes.join(", ") }));
-    const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Equipe"); XLSX.writeFile(wb, "Equipe_Louvor.xlsx");
-}
-function importarEquipeExcel(ev) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const wb = XLSX.read(e.target.result, {type: 'binary'});
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const data = XLSX.utils.sheet_to_json(ws);
-        data.forEach(row => { if(row["Nome"]) integrantes.push({ nome: row["Nome"], funcoes: row["Funções"] ? row["Funções"].split(", ") : [] }); });
-        salvarNuvem(); alert("Importado!");
-    };
-    reader.readAsBinaryString(ev.target.files[0]);
-}
-
-// --- REPERTÓRIO ---
-function renderMusicas() {
-    const c = document.getElementById("listaMusicas"); c.innerHTML = "";
-    const vs = integrantes.filter(it => it.funcoes.some(f => f.includes("Vocal") || f === "Ministro"));
-    document.getElementById("vocaisCheck").innerHTML = vs.map(v => `<label><input type="checkbox" name="v_mus" value="${v.nome}"> ${v.nome}</label>`).join("");
-    musicas.forEach((m, i) => { 
-        c.innerHTML += `<div class="escala-item"><span><b>${m.titulo}</b> (${m.vocalistas.join(", ")})</span>
-        <div class="row"><button class="primary" onclick="editMusica(${i})">✏️</button><button class="danger" onclick="delMusica(${i})">🗑</button></div></div>`; 
-    });
-}
-function salvarMusica() {
-    const t = document.getElementById("musNome").value, v = Array.from(document.querySelectorAll('input[name="v_mus"]:checked')).map(cb => cb.value);
-    if(!t) return;
-    if(editIdxMus > -1) musicas[editIdxMus] = {titulo: t, vocalistas: v};
-    else musicas.push({titulo: t, vocalistas: v});
-    resetMusForm(); salvarNuvem();
-}
 function editMusica(i) {
     editIdxMus = i; const m = musicas[i];
     document.getElementById("musNome").value = m.titulo;
@@ -349,48 +313,39 @@ function editMusica(i) {
     document.getElementById("formMusica").classList.add("edit-mode");
 }
 function resetMusForm() { editIdxMus = -1; document.getElementById("musNome").value = ""; document.querySelectorAll('input[name="v_mus"]').forEach(cb => cb.checked = false); document.getElementById("btnMusCancel").style.display = "none"; document.getElementById("formMusica").classList.remove("edit-mode"); }
-function delMusica(i) { musicas.splice(i,1); salvarNuvem(); }
 
-function exportarMusicasExcel() {
-    const data = musicas.map(m => ({ "Título": m.titulo, "Vocalistas": m.vocalistas.join(", ") }));
-    const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Musicas"); XLSX.writeFile(wb, "Repertorio.xlsx");
-}
-function importarMusicasExcel(ev) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const wb = XLSX.read(e.target.result, {type: 'binary'});
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const data = XLSX.utils.sheet_to_json(ws);
-        data.forEach(row => { if(row["Título"]) musicas.push({ titulo: row["Título"], vocalistas: row["Vocalistas"] ? row["Vocalistas"].split(", ") : [] }); });
-        salvarNuvem(); alert("Importado!");
-    };
-    reader.readAsBinaryString(ev.target.files[0]);
+function delInt(i) { if(confirm("Excluir integrante?")) { integrantes.splice(i,1); salvarNuvem(); } }
+function delMusica(i) { if(confirm("Excluir música?")) { musicas.splice(i,1); salvarNuvem(); } }
+
+function trocarMembro(el, func) {
+    let p = integrantes.filter(it => it.funcoes.includes(func.split(" / ")[0]));
+    let n = prompt("Trocar para:\n" + p.map(x => x.nome).join(", "));
+    if(n) el.parentElement.querySelector("b").innerText = n;
 }
 
-// --- HISTÓRICO ---
-function limparHistorico() { if(confirm("Apagar?")) { historico = []; salvarNuvem(); } }
+function salvarEscalaGerada() {
+    let h = document.getElementById("resultadoEscala").innerHTML;
+    if(!h) return;
+    historico.push({nome: "Escala " + new Date().toLocaleDateString(), html: h});
+    salvarNuvem(); alert("Escala salva no histórico!");
+}
+
 function renderHistorico() {
     const h = document.getElementById("listaHistorico"); h.innerHTML = "";
     historico.slice().reverse().forEach(esc => h.innerHTML += `<div class="card"><strong>${esc.nome}</strong><br>${esc.html}</div>`);
 }
-function salvarEscalaGerada() {
-    const h = document.getElementById("resultadoEscala").innerHTML;
-    if(h) { historico.push({nome: "Escala " + new Date().toLocaleDateString(), html: h}); salvarNuvem(); alert("Salvo na Nuvem!"); }
-}
 
-async function abrirMenuCompartilhar() {
-    let t = "*ESCALA LOUVOR 2026*\n\n";
-    document.querySelectorAll("#resultadoEscala .card").forEach(c => {
-        t += `📅 *${c.querySelector("h3").innerText}*\n`;
-        c.querySelectorAll(".escala-item span").forEach(i => t += `${i.innerText}\n`);
-        const mTags = Array.from(c.querySelectorAll(".musica-tag")).map(mt => mt.innerText).join(", ");
-        if(mTags) t += `🎵 Músicas: ${mTags}\n`;
-        t += "\n";
-    });
-    if (navigator.share) await navigator.share({title: 'Escala', text: t});
-    else { navigator.clipboard.writeText(t); alert("Copiado!"); }
+function limparHistorico() { if(confirm("Limpar tudo?")) { historico = []; salvarNuvem(); } }
+
+function carregarLogo() {
+    if(logoSalva) { document.getElementById("logoImg").src = logoSalva; document.getElementById("logoImg").style.display="block"; document.getElementById("logoEmoji").style.display="none"; }
 }
+function uploadLogo(e) {
+    const f = e.target.files[0]; const r = new FileReader();
+    r.onloadend = () => { logoSalva = r.result; localStorage.setItem("appLogo", logoSalva); carregarLogo(); };
+    if(f) r.readAsDataURL(f);
+}
+function removerLogo() { logoSalva = null; localStorage.removeItem("appLogo"); location.reload(); }
 
 function exportarParaExcel() {
     const rows = [["Data", "Função", "Nome"]];
@@ -399,32 +354,43 @@ function exportarParaExcel() {
         c.querySelectorAll(".escala-item span").forEach(i => rows.push([d, i.innerText.split(":")[0], i.querySelector("b").innerText]));
     });
     const ws = XLSX.utils.aoa_to_sheet(rows); const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Escala"); XLSX.writeFile(wb, "Escala.xlsx");
+    XLSX.utils.book_append_sheet(wb, ws, "Escala"); XLSX.writeFile(wb, "Escala_Louvor.xlsx");
 }
 
-function fazerBackup() {
-    const blob = new Blob([JSON.stringify({integrantes, musicas, historico})], {type: "application/json"});
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "backup_louvor.json"; a.click();
-}
-function restaurarBackup(ev) {
+function importarEquipeExcel(ev) {
     const reader = new FileReader();
-    reader.onload = (e) => { 
-        const d = JSON.parse(e.target.result); integrantes = d.integrantes; musicas = d.musicas; historico = d.historico;
-        salvarNuvem(); 
+    reader.onload = (e) => {
+        const wb = XLSX.read(e.target.result, {type: 'binary'});
+        const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+        data.forEach(r => { if(r.Nome) integrantes.push({nome: r.Nome, funcoes: r.Funções ? r.Funções.split(", ") : []}); });
+        salvarNuvem();
     };
-    reader.readAsText(ev.target.files[0]);
+    reader.readAsBinaryString(ev.target.files[0]);
+}
+
+function importarMusicasExcel(ev) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const wb = XLSX.read(e.target.result, {type: 'binary'});
+        const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+        data.forEach(r => { if(r.Título) musicas.push({titulo: r.Título, vocalistas: r.Vocalistas ? r.Vocalistas.split(", ") : []}); });
+        salvarNuvem();
+    };
+    reader.readAsBinaryString(ev.target.files[0]);
+}
+
+async function abrirMenuCompartilhar() {
+    let t = "*ESCALA LOUVOR 2026*\n\n";
+    document.querySelectorAll("#resultadoEscala .card").forEach(c => {
+        t += `📅 *${c.querySelector("h3").innerText}*\n`;
+        c.querySelectorAll(".escala-item span").forEach(i => t += `${i.innerText}\n`);
+        t += "\n";
+    });
+    if(navigator.share) navigator.share({text: t}); else { navigator.clipboard.writeText(t); alert("Copiado!"); }
 }
 
 carregarLogo();
-</script>
-
-<script>
-// Registro do SW para PWA
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(err => console.log(err));
-    });
-}
+if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
 </script>
 </body>
 </html>
