@@ -5,7 +5,6 @@
     <title>ESCALA LOUVOR 2026</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#2563eb">
-    <link rel="manifest" href="manifest.json">
     
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -44,7 +43,6 @@
         .musica-tag { background: #e0e7ff; color: #4338ca; padding: 4px 10px; border-radius: 6px; font-size: 12px; margin: 3px; display: inline-block; font-weight: bold; border: 1px solid #c7d2fe; }
         .edit-mode { border: 2px solid var(--success) !important; background: #f0fff4 !important; }
         .sync-status { font-size: 11px; text-align: center; color: #64748b; margin-top: -15px; margin-bottom: 15px; font-weight: bold; }
-        @media print { .no-print { display: none !important; } }
     </style>
 </head>
 <body>
@@ -94,6 +92,7 @@
         <div class="card" id="formMusica">
             <h3 id="musTit">Nova Música</h3>
             <input id="musNome" placeholder="Título da música" style="width:100%; margin-bottom:10px;">
+            <p><small>Quem pode ministrar esta música?</small></p>
             <div id="vocaisCheck" class="vocal-grid"></div>
             <div class="row" style="margin-top:10px;">
                 <button class="success" onclick="salvarMusica()">Salvar Música</button>
@@ -126,20 +125,16 @@
             </div>
         </div>
         <div class="card">
-            <h3>💾 Importação / Exportação</h3>
+            <h3>💾 Dados</h3>
             <div class="row">
                 <button class="secondary" onclick="fazerBackup()">📥 Backup Local (.json)</button>
-                <button class="primary" onclick="document.getElementById('importEqpExcel').click()">👥 Importar Equipe (Excel)</button>
-                <button class="primary" onclick="document.getElementById('importMusExcel').click()">🎵 Importar Músicas (Excel)</button>
-                <input type="file" id="importEqpExcel" style="display:none" accept=".xlsx, .xls" onchange="importarEquipeExcel(event)">
-                <input type="file" id="importMusExcel" style="display:none" accept=".xlsx, .xls" onchange="importarMusicasExcel(event)">
             </div>
         </div>
     </div>
 </div>
 
 <script>
-// --- CONFIGURAÇÃO FIREBASE ---
+// --- CONFIGURAÇÃO ---
 const firebaseConfig = {
     apiKey: "AIzaSyCoFW2dGfZTmKE4LNRL0TJBNACUneRmUJQ",
     authDomain: "escala-louvor-f5c43.firebaseapp.com",
@@ -151,7 +146,6 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-
 const ano = 2026;
 const funcoesLista = ["Ministro", "Vocal 1", "Vocal 2", "Vocal 3", "Violonista", "Guitarrista", "Baixista", "Baterista", "Tecladista", "Mesa de Som", "Mídia"];
 
@@ -159,37 +153,32 @@ let integrantes = [];
 let musicas = [];
 let historico = [];
 let logoSalva = localStorage.getItem("appLogo") || null;
-let editIdxMus = -1; let editIdxInt = -1;
+let editIdxMus = -1; 
+let editIdxInt = -1;
 
-// --- SINCRONIZAÇÃO FIREBASE ---
+// --- SYNC ---
 db.ref('escala_v1').on('value', (snapshot) => {
     const data = snapshot.val();
-    integrantes = (data && data.integrantes) ? data.integrantes : [];
-    musicas = (data && data.musicas) ? data.musicas : [];
-    historico = (data && data.historico) ? data.historico : [];
-    
-    document.getElementById('statusSync').innerText = "✓ Sincronizado com Nuvem";
+    if (data) {
+        integrantes = data.integrantes || [];
+        musicas = data.musicas || [];
+        historico = data.historico || [];
+    }
+    document.getElementById('statusSync').innerText = "✓ Sincronizado";
     renderEquipe();
     renderMusicas();
     renderHistorico();
-}, () => {
-    document.getElementById('statusSync').innerText = "⚠ Erro de conexão!";
 });
 
 function salvarNuvem() {
-    document.getElementById('statusSync').innerText = "Salvando...";
-    db.ref('escala_v1').set({
-        integrantes: integrantes,
-        musicas: musicas,
-        historico: historico
-    });
+    db.ref('escala_v1').set({ integrantes, musicas, historico });
 }
 
-// --- GERAÇÃO DA ESCALA (LÓGICA PRINCIPAL) ---
+// --- LÓGICA DE ESCALA ---
 function gerarEscalaCompleta() {
     const mes = parseInt(document.getElementById("mesSelecao").value);
     const container = document.getElementById("resultadoEscala");
-    if (integrantes.length === 0) return alert("Cadastre a equipe primeiro!");
+    if (!integrantes.length) return alert("Cadastre a equipe!");
 
     container.innerHTML = "";
     const diasNoMes = new Date(ano, mes + 1, 0).getDate();
@@ -197,31 +186,36 @@ function gerarEscalaCompleta() {
 
     for (let d = 1; d <= diasNoMes; d++) {
         const data = new Date(ano, mes, d);
-        if (![0, 3].includes(data.getDay())) continue; // Apenas Dom (0) e Qua (3)
+        if (![0, 3].includes(data.getDay())) continue;
 
         let escaladosDia = [];
         let vocaisAtivos = [];
         let htmlCorpo = "";
 
-        // 1. Ministro (Regra: Mesclar se for vocal)
+        // 1. Ministro (Regra: Microfone 1 e Mesclar Função)
         let mins = integrantes.filter(it => it.funcoes.includes("Ministro")).sort(() => Math.random() - 0.5);
         let m = mins[0];
         if (m) {
             escaladosDia.push(m.nome);
-            vocaisAtivos.push(m.nome);
-            let isVocal = m.funcoes.some(f => f.toLowerCase().includes("vocal"));
-            let label = isVocal ? "Ministro / Vocal" : "Ministro";
+            let temVocal = m.funcoes.some(f => f.toLowerCase().includes("vocal"));
+            if(temVocal) vocaisAtivos.push(m.nome); // Ocupa 1 dos 4 mics
+
+            let label = temVocal ? "Ministro / Vocal" : "Ministro";
             htmlCorpo += `<div class="escala-item"><span>${label}: <b>${m.nome}</b></span> <button class="btn-swap no-print" onclick="trocarMembro(this, '${label}')">🔄</button></div>`;
         }
 
-        // 2. Outras Funções (Máximo 4 microfones)
+        // 2. Demais Funções
         funcoesLista.forEach(f => {
             if (f === "Ministro") return;
-            if (f.toLowerCase().includes("vocal") && vocaisAtivos.length >= 4) return; // Limite de 4 mics
+            
+            // Regra dos 4 Microfones
+            if (f.toLowerCase().includes("vocal") && vocaisAtivos.length >= 4) return;
 
             let cand = integrantes.filter(it => {
+                // Exceção Jossinei (Quarta sim, quarta não)
                 const semAno = Math.ceil((data - new Date(ano, 0, 1)) / (604800000));
                 if (it.nome === "Jossinei" && data.getDay() === 3 && (semAno % 2 !== 0)) return false;
+                
                 return it.funcoes.includes(f) && !escaladosDia.includes(it.nome);
             }).sort(() => Math.random() - 0.5);
 
@@ -235,7 +229,7 @@ function gerarEscalaCompleta() {
             }
         });
 
-        // 3. Músicas (3 compatíveis com os vocais do dia)
+        // 3. Músicas
         let mPossiveis = musicas.filter(ms => ms.vocalistas && ms.vocalistas.some(v => vocaisAtivos.includes(v)));
         let mEscolhidas = mPossiveis.sort(() => Math.random() - 0.5).slice(0, 3);
 
@@ -244,7 +238,7 @@ function gerarEscalaCompleta() {
                 <h3 style="text-transform:capitalize">${data.toLocaleDateString('pt-BR',{weekday:'long'})}, ${d}/${mes+1}</h3>
                 <hr>${htmlCorpo}
                 <div style="margin-top:10px; border-top:1px solid #eee; padding-top:10px">
-                    <strong>🎵 Repertório:</strong><br>
+                    <strong>🎵 Repertório (Mics ativos: ${vocaisAtivos.length}/4):</strong><br>
                     ${mEscolhidas.length > 0 ? mEscolhidas.map(x => `<span class="musica-tag">${x.titulo}</span>`).join("") : "---"}
                 </div>
             </div>`;
@@ -252,7 +246,7 @@ function gerarEscalaCompleta() {
     container.innerHTML = finalHtml || "<p>Sem cultos.</p>";
 }
 
-// --- FUNÇÕES DE INTERFACE ---
+// --- GESTÃO DE EQUIPE ---
 function renderEquipe() {
     const c = document.getElementById("listaIntegrantes"); c.innerHTML = "";
     document.getElementById("funcoesCheck").innerHTML = funcoesLista.map(f => `<label style="font-size:12px"><input type="checkbox" name="f_int" value="${f}"> ${f}</label>`).join("");
@@ -260,6 +254,16 @@ function renderEquipe() {
         c.innerHTML += `<div class="escala-item"><span><b>${it.nome}</b><br><small>${it.funcoes.join(", ")}</small></span>
         <div class="row"><button class="primary" onclick="editInt(${i})">✏️</button><button class="danger" onclick="delInt(${i})">🗑</button></div></div>`;
     });
+}
+
+function editInt(i) {
+    editIdxInt = i; 
+    const it = integrantes[i];
+    document.getElementById("intNome").value = it.nome;
+    document.querySelectorAll('input[name="f_int"]').forEach(cb => cb.checked = it.funcoes.includes(cb.value));
+    document.getElementById("btnIntCancel").style.display = "block";
+    document.getElementById("formInt").classList.add("edit-mode");
+    document.getElementById("eqpTit").innerText = "Editando Integrante";
 }
 
 function salvarInt() {
@@ -270,6 +274,11 @@ function salvarInt() {
     resetIntForm(); salvarNuvem();
 }
 
+function resetIntForm() { editIdxInt = -1; document.getElementById("intNome").value = ""; document.querySelectorAll('input[name="f_int"]').forEach(cb => cb.checked = false); document.getElementById("btnIntCancel").style.display = "none"; document.getElementById("formInt").classList.remove("edit-mode"); document.getElementById("eqpTit").innerText = "Novo Integrante"; }
+
+function delInt(i) { if(confirm("Excluir?")) { integrantes.splice(i,1); salvarNuvem(); } }
+
+// --- GESTÃO DE MÚSICAS ---
 function renderMusicas() {
     const c = document.getElementById("listaMusicas"); c.innerHTML = "";
     const vs = integrantes.filter(it => it.funcoes.some(f => f.includes("Vocal") || f === "Ministro"));
@@ -280,15 +289,29 @@ function renderMusicas() {
     });
 }
 
+function editMusica(i) {
+    editIdxMus = i; 
+    const m = musicas[i];
+    document.getElementById("musNome").value = m.titulo;
+    document.querySelectorAll('input[name="v_mus"]').forEach(cb => cb.checked = m.vocalistas.includes(cb.value));
+    document.getElementById("btnMusCancel").style.display = "block";
+    document.getElementById("formMusica").classList.add("edit-mode");
+    document.getElementById("musTit").innerText = "Editando Música";
+}
+
 function salvarMusica() {
     const t = document.getElementById("musNome").value, v = Array.from(document.querySelectorAll('input[name="v_mus"]:checked')).map(cb => cb.value);
-    if(!t) return alert("Nome da música obrigatório!");
+    if(!t) return alert("Título obrigatório!");
     if(editIdxMus > -1) musicas[editIdxMus] = {titulo: t, vocalistas: v};
     else musicas.push({titulo: t, vocalistas: v});
     resetMusForm(); salvarNuvem();
 }
 
-// --- AUXILIARES ---
+function resetMusForm() { editIdxMus = -1; document.getElementById("musNome").value = ""; document.querySelectorAll('input[name="v_mus"]').forEach(cb => cb.checked = false); document.getElementById("btnMusCancel").style.display = "none"; document.getElementById("formMusica").classList.remove("edit-mode"); document.getElementById("musTit").innerText = "Nova Música"; }
+
+function delMusica(i) { if(confirm("Excluir?")) { musicas.splice(i,1); salvarNuvem(); } }
+
+// --- AUXILIARES E UI ---
 function openTab(evt, name) {
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -296,29 +319,9 @@ function openTab(evt, name) {
     evt.currentTarget.classList.add('active');
 }
 
-function editInt(i) {
-    editIdxInt = i; const it = integrantes[i];
-    document.getElementById("intNome").value = it.nome;
-    document.querySelectorAll('input[name="f_int"]').forEach(cb => cb.checked = it.funcoes.includes(cb.value));
-    document.getElementById("btnIntCancel").style.display = "block";
-    document.getElementById("formInt").classList.add("edit-mode");
-}
-function resetIntForm() { editIdxInt = -1; document.getElementById("intNome").value = ""; document.querySelectorAll('input[name="f_int"]').forEach(cb => cb.checked = false); document.getElementById("btnIntCancel").style.display = "none"; document.getElementById("formInt").classList.remove("edit-mode"); }
-
-function editMusica(i) {
-    editIdxMus = i; const m = musicas[i];
-    document.getElementById("musNome").value = m.titulo;
-    document.querySelectorAll('input[name="v_mus"]').forEach(cb => cb.checked = m.vocalistas.includes(cb.value));
-    document.getElementById("btnMusCancel").style.display = "block";
-    document.getElementById("formMusica").classList.add("edit-mode");
-}
-function resetMusForm() { editIdxMus = -1; document.getElementById("musNome").value = ""; document.querySelectorAll('input[name="v_mus"]').forEach(cb => cb.checked = false); document.getElementById("btnMusCancel").style.display = "none"; document.getElementById("formMusica").classList.remove("edit-mode"); }
-
-function delInt(i) { if(confirm("Excluir integrante?")) { integrantes.splice(i,1); salvarNuvem(); } }
-function delMusica(i) { if(confirm("Excluir música?")) { musicas.splice(i,1); salvarNuvem(); } }
-
 function trocarMembro(el, func) {
-    let p = integrantes.filter(it => it.funcoes.includes(func.split(" / ")[0]));
+    let baseFunc = func.split(" / ")[0];
+    let p = integrantes.filter(it => it.funcoes.includes(baseFunc));
     let n = prompt("Trocar para:\n" + p.map(x => x.nome).join(", "));
     if(n) el.parentElement.querySelector("b").innerText = n;
 }
@@ -326,8 +329,8 @@ function trocarMembro(el, func) {
 function salvarEscalaGerada() {
     let h = document.getElementById("resultadoEscala").innerHTML;
     if(!h) return;
-    historico.push({nome: "Escala " + new Date().toLocaleDateString(), html: h});
-    salvarNuvem(); alert("Escala salva no histórico!");
+    historico.push({nome: "Escala " + new Date().toLocaleString(), html: h});
+    salvarNuvem(); alert("Salvo no histórico!");
 }
 
 function renderHistorico() {
@@ -354,29 +357,7 @@ function exportarParaExcel() {
         c.querySelectorAll(".escala-item span").forEach(i => rows.push([d, i.innerText.split(":")[0], i.querySelector("b").innerText]));
     });
     const ws = XLSX.utils.aoa_to_sheet(rows); const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Escala"); XLSX.writeFile(wb, "Escala_Louvor.xlsx");
-}
-
-function importarEquipeExcel(ev) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const wb = XLSX.read(e.target.result, {type: 'binary'});
-        const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-        data.forEach(r => { if(r.Nome) integrantes.push({nome: r.Nome, funcoes: r.Funções ? r.Funções.split(", ") : []}); });
-        salvarNuvem();
-    };
-    reader.readAsBinaryString(ev.target.files[0]);
-}
-
-function importarMusicasExcel(ev) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const wb = XLSX.read(e.target.result, {type: 'binary'});
-        const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-        data.forEach(r => { if(r.Título) musicas.push({titulo: r.Título, vocalistas: r.Vocalistas ? r.Vocalistas.split(", ") : []}); });
-        salvarNuvem();
-    };
-    reader.readAsBinaryString(ev.target.files[0]);
+    XLSX.utils.book_append_sheet(wb, ws, "Escala"); XLSX.writeFile(wb, "Escala_Louvor_2026.xlsx");
 }
 
 async function abrirMenuCompartilhar() {
@@ -386,11 +367,20 @@ async function abrirMenuCompartilhar() {
         c.querySelectorAll(".escala-item span").forEach(i => t += `${i.innerText}\n`);
         t += "\n";
     });
-    if(navigator.share) navigator.share({text: t}); else { navigator.clipboard.writeText(t); alert("Copiado!"); }
+    if(navigator.share) navigator.share({text: t}); else { navigator.clipboard.writeText(t); alert("Copiado para o clipboard!"); }
+}
+
+function fazerBackup() {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({integrantes, musicas, historico}));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", "backup_escala_2026.json");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
 }
 
 carregarLogo();
-if('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
 </script>
 </body>
 </html>
